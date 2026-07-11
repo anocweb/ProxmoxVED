@@ -298,10 +298,11 @@ if [[ "${INSTALL_RSPAMD}" == true ]]; then
   {
     echo 'bind_socket = "localhost:11333";'
   } >/etc/rspamd/local.d/worker-normal.inc
+  LOCAL_SUBNET=$(ip -4 route | awk '/proto kernel/ {print $1}' | head -1)
   {
     echo 'bind_socket = "*:11334";'
     echo 'password = "";'
-    echo 'secure_ip = ["127.0.0.1", "::1", "192.168.0.0/16"];'
+    echo "secure_ip = [\"127.0.0.1\", \"::1\", \"${LOCAL_SUBNET}\"];"
   } >/etc/rspamd/local.d/worker-controller.inc
   systemctl enable --now rspamd
   msg_ok "Installed rspamd"
