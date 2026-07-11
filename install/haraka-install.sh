@@ -97,7 +97,7 @@ build_item() {
 # shellcheck disable=SC2046
 if ! PLUGIN_LIST=$(whiptail --title "Haraka Setup — Step 2 of 4" \
   --checklist "Review and adjust plugins. Pre-checked items come from your selected presets." 30 78 20 \
-  $(build_item "tls"                     "TLS/STARTTLS support (recommended)") \
+  $(build_item "tls"                     "TLS/STARTTLS support") \
   $(build_item "spf"                     "SPF validation") \
   $(build_item "dkim"                    "DKIM sign and verify") \
   $(build_item "fcrdns"                  "Forward-confirmed reverse DNS checks") \
@@ -117,7 +117,7 @@ if ! PLUGIN_LIST=$(whiptail --title "Haraka Setup — Step 2 of 4" \
   $(build_item "early_talker"            "Reject clients that talk before banner") \
   $(build_item "toobusy"                 "Defer connections when server is under load") \
   $(build_item "clamd"                   "Antivirus scanning via ClamAV") \
-  $(build_item "watch"                   "Live SMTP traffic web UI (port 8055)") \
+  $(build_item "watch"                   "Live SMTP traffic web UI - port 8055") \
   $(build_item "process_title"           "Show activity counters in ps output") \
   $(build_item "syslog"                  "Log to syslog") \
   3>&1 1>&2 2>&3); then
