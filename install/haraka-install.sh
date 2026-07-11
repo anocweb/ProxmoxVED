@@ -188,6 +188,27 @@ elif [[ "${QUEUE}" == "rabbitmq" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# SCREEN 3b (conditional): SMTP AUTH setup
+# ---------------------------------------------------------------------------
+if echo "${PLUGIN_LIST}" | grep -q "auth/flat_file"; then
+  AUTH_USER=$(whiptail --title "SMTP AUTH Setup" --inputbox \
+    "Enter a username for SMTP AUTH:\n(Additional users can be added to /opt/haraka/config/auth_flat_file.ini)" \
+    10 65 "" 3>&1 1>&2 2>&3)
+  AUTH_PASS=$(whiptail --title "SMTP AUTH Setup" --passwordbox \
+    "Enter password for '${AUTH_USER}':" \
+    8 50 "" 3>&1 1>&2 2>&3)
+fi
+
+# ---------------------------------------------------------------------------
+# SCREEN 3c (conditional): Relay network setup
+# ---------------------------------------------------------------------------
+if echo "${PLUGIN_LIST}" | grep -q "relay"; then
+  RELAY_NETS=$(whiptail --title "Relay Network Setup" --inputbox \
+    "Enter networks allowed to relay without authentication.\nComma-separated CIDRs (e.g. 192.168.1.0/24, 10.0.0.0/8):" \
+    10 70 "" 3>&1 1>&2 2>&3)
+fi
+
+# ---------------------------------------------------------------------------
 # SCREEN 4 (conditional): rspamd install notice
 # ---------------------------------------------------------------------------
 INSTALL_RSPAMD=false
@@ -310,6 +331,30 @@ msg_info "Configuring Haraka"
   echo "port=2525"
   echo "listen_host=0.0.0.0"
 } >/opt/haraka/config/smtp.ini
+
+# Write SMTP AUTH config if auth/flat_file was selected
+if [[ -n "${AUTH_USER:-}" ]]; then
+  AUTH_PASS_ENC=$(node -e "const crypto=require('crypto'); const h=crypto.createHash('sha1'); h.update('${AUTH_PASS}'); console.log('{SHA}'+h.digest('base64'));")
+  {
+    echo "[core]"
+    echo "methods=PLAIN,LOGIN,CRAM-MD5"
+    echo ""
+    echo "[users]"
+    echo "${AUTH_USER}=${AUTH_PASS_ENC}"
+  } >/opt/haraka/config/auth_flat_file.ini
+  # Remove auth from manual config notice since we configured it
+  MANUAL_CONFIG_ITEMS="${MANUAL_CONFIG_ITEMS//  • auth        → \/opt\/haraka\/config\/auth_flat_file.ini\\n/}"
+fi
+
+# Write relay ACL if relay was selected
+if [[ -n "${RELAY_NETS:-}" ]]; then
+  {
+    echo "# Relay allowed networks"
+    echo "${RELAY_NETS}" | tr ',' '\n' | sed 's/^[[:space:]]*//'
+  } >/opt/haraka/config/relay_acl_allow
+  # Remove relay from manual config notice since we configured it
+  MANUAL_CONFIG_ITEMS="${MANUAL_CONFIG_ITEMS//  • relay       → \/opt\/haraka\/config\/relay_acl_allow\\n/}"
+fi
 
 if echo "${PLUGIN_LIST}" | grep -q "watch"; then
   {
