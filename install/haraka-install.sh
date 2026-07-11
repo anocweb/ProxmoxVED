@@ -57,36 +57,31 @@ if ! PURPOSES=$(whiptail --title "Haraka Setup — Step 1 of 4" \
 fi
 
 # Build pre-selected plugin list from chosen purposes
-declare -A PLUGIN_SELECTED
-PLUGIN_SELECTED["tls"]=1
+# Base plugins always enabled regardless of preset
+PLUGIN_SELECTED="tls helo.checks bounce"
 
 if echo "${PURPOSES}" | grep -q "inbound"; then
-  for p in spf dkim fcrdns helo.checks mail_from.is_resolvable bounce rcpt_to.in_host_list; do
-    PLUGIN_SELECTED["${p}"]=1
-  done
+  PLUGIN_SELECTED="${PLUGIN_SELECTED} spf dkim fcrdns mail_from.is_resolvable rcpt_to.in_host_list"
 fi
 
 if echo "${PURPOSES}" | grep -q "relay"; then
-  for p in relay auth/flat_file bounce; do
-    PLUGIN_SELECTED["${p}"]=1
-  done
+  PLUGIN_SELECTED="${PLUGIN_SELECTED} relay auth/flat_file"
 fi
 
 if echo "${PURPOSES}" | grep -q "spam"; then
-  for p in rspamd greylist karma dns-list uribl delay_deny tarpit early_talker; do
-    PLUGIN_SELECTED["${p}"]=1
-  done
+  PLUGIN_SELECTED="${PLUGIN_SELECTED} rspamd greylist karma dns-list uribl delay_deny tarpit early_talker"
 fi
 
 if echo "${PURPOSES}" | grep -q "antivirus"; then
-  PLUGIN_SELECTED["clamd"]=1
+  PLUGIN_SELECTED="${PLUGIN_SELECTED} clamd"
 fi
 
 if echo "${PURPOSES}" | grep -q "monitor"; then
-  for p in watch process_title syslog; do
-    PLUGIN_SELECTED["${p}"]=1
-  done
+  PLUGIN_SELECTED="${PLUGIN_SELECTED} watch process_title syslog"
 fi
+
+# Export so subshells (build_item) can access it
+export PLUGIN_SELECTED
 
 # ---------------------------------------------------------------------------
 # SCREEN 2: Plugin fine-tuning
@@ -95,7 +90,7 @@ build_item() {
   local name="$1"
   local desc="$2"
   local state="OFF"
-  [[ -n "${PLUGIN_SELECTED[$name]:-}" ]] && state="ON"
+  echo "${PLUGIN_SELECTED}" | grep -qw "${name}" && state="ON"
   echo "$name" "$desc" "$state"
 }
 
