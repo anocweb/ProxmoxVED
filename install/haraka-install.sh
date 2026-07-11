@@ -320,6 +320,9 @@ if echo "${PLUGIN_LIST}" | grep -q "watch"; then
 fi
 
 # Install npm-packaged plugins that were selected
+# Note: tls, toobusy, tarpit, delay_deny, process_title, rcpt_to.in_host_list,
+# reseed_rng, record_envelope_addresses, and all queue/* plugins are built into
+# Haraka and do not need to be installed via npm.
 NPM_PLUGINS=()
 if echo "${PLUGIN_LIST}" | grep -q "rspamd";                  then NPM_PLUGINS+=("haraka-plugin-rspamd"); fi
 if echo "${PLUGIN_LIST}" | grep -q "greylist";                then NPM_PLUGINS+=("haraka-plugin-greylist"); fi
@@ -332,8 +335,10 @@ if echo "${PLUGIN_LIST}" | grep -q "spf";                     then NPM_PLUGINS+=
 if echo "${PLUGIN_LIST}" | grep -q "dkim";                    then NPM_PLUGINS+=("haraka-plugin-dkim"); fi
 if echo "${PLUGIN_LIST}" | grep -q "watch";                   then NPM_PLUGINS+=("haraka-plugin-watch"); fi
 if echo "${PLUGIN_LIST}" | grep -q "relay";                   then NPM_PLUGINS+=("haraka-plugin-relay"); fi
-if [[ "${QUEUE}" == "smtp_forward" ]];                        then NPM_PLUGINS+=("haraka-plugin-queue-smtp-forward"); fi
-if [[ "${QUEUE}" == "rabbitmq" ]];                            then NPM_PLUGINS+=("haraka-plugin-queue-rabbitmq"); fi
+if echo "${PLUGIN_LIST}" | grep -q "bounce";                  then NPM_PLUGINS+=("haraka-plugin-bounce"); fi
+if echo "${PLUGIN_LIST}" | grep -q "early_talker";            then NPM_PLUGINS+=("haraka-plugin-early_talker"); fi
+if echo "${PLUGIN_LIST}" | grep -q "helo.checks";             then NPM_PLUGINS+=("haraka-plugin-helo.checks"); fi
+if echo "${PLUGIN_LIST}" | grep -q "mail_from.is_resolvable"; then NPM_PLUGINS+=("haraka-plugin-mail_from.is_resolvable"); fi
 
 if [[ ${#NPM_PLUGINS[@]} -gt 0 ]]; then
   msg_info "Installing npm plugins"
