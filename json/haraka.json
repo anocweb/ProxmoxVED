@@ -1,0 +1,53 @@
+{
+    "name": "Haraka",
+    "slug": "haraka",
+    "categories": [
+        18
+    ],
+    "date_created": "2026-07-11",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "has_arm": false,
+    "interface_port": 2525,
+    "documentation": "https://haraka.github.io",
+    "website": "https://haraka.github.io",
+    "logo": "https://cdn.jsdelivr.net/gh/selfhst/icons@main/webp/haraka.webp",
+    "description": "Haraka is a high-performance, pluggable SMTP server built on Node.js. It supports inbound and outbound mail, a rich plugin ecosystem including SPF, DKIM, rspamd, ClamAV, and flexible queue backends such as smtp_forward, LMTP, and RabbitMQ.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/haraka.sh",
+            "config_path": "/opt/haraka/config",
+            "resources": {
+                "cpu": 1,
+                "ram": 2048,
+                "hdd": 4,
+                "os": "Debian",
+                "version": "13"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": null,
+        "password": null
+    },
+    "notes": [
+        {
+            "text": "SMTP listens on port 2525 (non-privileged). Update your firewall/NAT rules accordingly.",
+            "type": "info"
+        },
+        {
+            "text": "Plugin selection is interactive during install — choose your use case (Inbound MTA, Outbound Relay, Spam Filtering, Antivirus, Monitoring) and plugins will be pre-selected automatically.",
+            "type": "info"
+        },
+        {
+            "text": "If rspamd or ClamAV are selected, they will be installed and configured inside the same container. ClamAV requires significant RAM — ensure the container has at least 2048 MB.",
+            "type": "warning"
+        },
+        {
+            "text": "Some plugins (relay, dkim, auth, rcpt_to.in_host_list) require additional manual configuration after install. The installer will display a list of files that need attention.",
+            "type": "warning"
+        }
+    ]
+}
