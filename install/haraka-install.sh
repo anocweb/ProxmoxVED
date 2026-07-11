@@ -44,7 +44,7 @@ msg_ok "Installed Haraka ${RELEASE}"
 # ---------------------------------------------------------------------------
 # SCREEN 1: Purpose selector
 # ---------------------------------------------------------------------------
-if ! PURPOSES=$(whiptail --title "Haraka Setup — Step 1 of 4" \
+if ! PURPOSES=$(whiptail --title "Haraka Setup — Step 1 of 3" \
   --checklist "Select your use case(s). Plugins will be pre-selected on the next screen." 20 70 5 \
   "inbound"   "Inbound MTA (receive mail)"          OFF \
   "relay"     "Outbound Relay (send via upstream)"  OFF \
@@ -114,7 +114,7 @@ PLUGIN_ARGS=(
   "syslog"                  "Log to syslog"                                "$(is_selected syslog)"
 )
 
-if ! PLUGIN_LIST=$(whiptail --title "Haraka Setup — Step 2 of 4" \
+if ! PLUGIN_LIST=$(whiptail --title "Haraka Setup — Step 2 of 3" \
   --checklist "Review and adjust plugins. Pre-checked items come from your selected presets." 30 78 20 \
   "${PLUGIN_ARGS[@]}" \
   3>&1 1>&2 2>&3); then
@@ -125,7 +125,7 @@ fi
 # ---------------------------------------------------------------------------
 # SCREEN 3: Queue plugin (required)
 # ---------------------------------------------------------------------------
-if ! QUEUE=$(whiptail --title "Haraka Setup — Step 3 of 4" \
+if ! QUEUE=$(whiptail --title "Haraka Setup — Step 3 of 3" \
   --menu "Select a queue (delivery) plugin. This is required — Haraka will not deliver mail without one." 18 70 4 \
   "smtp_forward" "Forward to upstream SMTP (SES, Mailgun, etc.)" \
   "lmtp"         "Deliver via LMTP (e.g. to Dovecot)" \
@@ -209,24 +209,18 @@ if echo "${PLUGIN_LIST}" | grep -q "relay"; then
 fi
 
 # ---------------------------------------------------------------------------
-# SCREEN 4 (conditional): rspamd install notice
+# SCREEN 4 (conditional): rspamd install
 # ---------------------------------------------------------------------------
 INSTALL_RSPAMD=false
 if echo "${PLUGIN_LIST}" | grep -q "rspamd"; then
-  whiptail --title "rspamd Setup" --msgbox \
-    "rspamd will be installed and configured on this container.\n\nHaraka will connect to rspamd on localhost:11333.\nThe rspamd web UI will be available on port 11334.\n\nThis may take a few minutes." \
-    12 65
   INSTALL_RSPAMD=true
 fi
 
 # ---------------------------------------------------------------------------
-# SCREEN 5 (conditional): ClamAV install notice
+# SCREEN 5 (conditional): ClamAV install
 # ---------------------------------------------------------------------------
 INSTALL_CLAMD=false
 if echo "${PLUGIN_LIST}" | grep -q "clamd"; then
-  whiptail --title "ClamAV Setup" --msgbox \
-    "ClamAV will be installed and configured on this container.\n\nNote: ClamAV requires ~500MB RAM. Ensure the container has sufficient memory.\n\nfreshclam will run to download the initial virus definitions — this may take several minutes." \
-    12 65
   INSTALL_CLAMD=true
 fi
 
