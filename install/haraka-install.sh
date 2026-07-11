@@ -147,6 +147,9 @@ if [[ "${QUEUE}" == "smtp_forward" ]]; then
     "Auth username (leave blank if not required):" 10 70 "" 3>&1 1>&2 2>&3)
   FWD_PASS=$(whiptail --title "Queue: smtp_forward" --passwordbox \
     "Auth password (leave blank if not required):" 10 70 "" 3>&1 1>&2 2>&3)
+  FWD_DOMAINS=$(whiptail --title "Queue: smtp_forward" --inputbox \
+    "Domains to forward (comma-separated, e.g. example.com, myapp.com):\nA routing section will be created for each domain." \
+    10 70 "" 3>&1 1>&2 2>&3)
   {
     echo "[main]"
     echo "host=${FWD_HOST}"
@@ -156,6 +159,21 @@ if [[ "${QUEUE}" == "smtp_forward" ]]; then
       echo "auth_pass=${FWD_PASS}"
       echo "enable_tls=1"
     fi
+    echo ""
+    # Write a per-domain section for each domain so get_mx routes via the forwarder
+    echo "${FWD_DOMAINS}" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | while read -r domain; do
+      [[ -z "${domain}" ]] && continue
+      echo "[${domain}]"
+      echo "host=${FWD_HOST}"
+      echo "port=${FWD_PORT}"
+      if [[ -n "${FWD_USER}" ]]; then
+        echo "auth_type=plain"
+        echo "auth_user=${FWD_USER}"
+        echo "auth_pass=${FWD_PASS}"
+        echo "enable_tls=1"
+      fi
+      echo ""
+    done
   } >/opt/haraka/config/smtp_forward.ini
 
 elif [[ "${QUEUE}" == "lmtp" ]]; then
@@ -379,6 +397,13 @@ if [[ -n "${RELAY_NETS:-}" ]]; then
   } >/opt/haraka/config/relay_acl_allow
   # Remove relay from manual config notice since we configured it
   MANUAL_CONFIG_ITEMS="${MANUAL_CONFIG_ITEMS//  • relay       → \/opt\/haraka\/config\/relay_acl_allow\\n/}"
+fi
+
+# Populate host_list with smtp_forward domains so rcpt_to.in_host_list accepts them
+if [[ -n "${FWD_DOMAINS:-}" ]]; then
+  echo "${FWD_DOMAINS}" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' >>/opt/haraka/config/host_list
+  # Remove rcpt_to from manual config notice since we populated it
+  MANUAL_CONFIG_ITEMS="${MANUAL_CONFIG_ITEMS//  • rcpt_to     → \/opt\/haraka\/config\/host_list\\n/}"
 fi
 
 if echo "${PLUGIN_LIST}" | grep -q "watch"; then
