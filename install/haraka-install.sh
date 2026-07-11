@@ -320,10 +320,13 @@ if echo "${PLUGIN_LIST}" | grep -q "watch"; then
 fi
 
 # Install npm-packaged plugins that were selected
-# Note: tls, toobusy, tarpit, delay_deny, process_title, rcpt_to.in_host_list,
+# Note: tarpit, delay_deny, process_title, rcpt_to.in_host_list,
 # reseed_rng, record_envelope_addresses, and all queue/* plugins are built into
 # Haraka and do not need to be installed via npm.
-NPM_PLUGINS=()
+# toobusy is built-in but requires the external toobusy-js npm dependency.
+# syslog requires haraka-plugin-syslog from npm.
+NPM_PLUGINS=("toobusy-js")
+if echo "${PLUGIN_LIST}" | grep -q "syslog";                  then NPM_PLUGINS+=("haraka-plugin-syslog"); fi
 if echo "${PLUGIN_LIST}" | grep -q "rspamd";                  then NPM_PLUGINS+=("haraka-plugin-rspamd"); fi
 if echo "${PLUGIN_LIST}" | grep -q "greylist";                then NPM_PLUGINS+=("haraka-plugin-greylist"); fi
 if echo "${PLUGIN_LIST}" | grep -q "karma";                   then NPM_PLUGINS+=("haraka-plugin-karma"); fi
@@ -340,15 +343,26 @@ if echo "${PLUGIN_LIST}" | grep -q "early_talker";            then NPM_PLUGINS+=
 if echo "${PLUGIN_LIST}" | grep -q "helo.checks";             then NPM_PLUGINS+=("haraka-plugin-helo.checks"); fi
 if echo "${PLUGIN_LIST}" | grep -q "mail_from.is_resolvable"; then NPM_PLUGINS+=("haraka-plugin-mail_from.is_resolvable"); fi
 
-if [[ ${#NPM_PLUGINS[@]} -gt 0 ]]; then
-  msg_info "Installing npm plugins"
-  cd /opt/haraka || exit
-  $STD npm install "${NPM_PLUGINS[@]}"
-  msg_ok "Installed npm plugins"
-fi
+msg_info "Installing npm plugins"
+cd /opt/haraka || exit
+$STD npm install "${NPM_PLUGINS[@]}"
+msg_ok "Installed npm plugins"
 
 chown -R haraka:haraka /opt/haraka
 msg_ok "Configured Haraka"
+
+# ---------------------------------------------------------------------------
+# Generate self-signed TLS certificate
+# ---------------------------------------------------------------------------
+msg_info "Generating TLS certificate"
+$STD apt-get install -y openssl
+openssl req -new -x509 -days 3650 -nodes \
+  -out /opt/haraka/config/tls_cert.pem \
+  -keyout /opt/haraka/config/tls_key.pem \
+  -subj "/CN=$(hostname)" &>/dev/null
+chown haraka:haraka /opt/haraka/config/tls_cert.pem /opt/haraka/config/tls_key.pem
+chmod 600 /opt/haraka/config/tls_key.pem
+msg_ok "Generated TLS certificate"
 
 # ---------------------------------------------------------------------------
 # Create systemd service
