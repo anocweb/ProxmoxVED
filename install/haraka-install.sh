@@ -299,9 +299,9 @@ if [[ "${INSTALL_RSPAMD}" == true ]]; then
     echo 'bind_socket = "localhost:11333";'
   } >/etc/rspamd/local.d/worker-normal.inc
   {
-    echo 'bind_socket = "localhost:11334";'
+    echo 'bind_socket = "*:11334";'
     echo 'password = "";'
-    echo 'secure_ip = ["127.0.0.1", "::1"];'
+    echo 'secure_ip = ["127.0.0.1", "::1", "192.168.0.0/16"];'
   } >/etc/rspamd/local.d/worker-controller.inc
   systemctl enable --now rspamd
   msg_ok "Installed rspamd"
@@ -383,13 +383,13 @@ fi
 if echo "${PLUGIN_LIST}" | grep -q "watch"; then
   {
     echo "[main]"
-    echo "port=8055"
-    echo "bind=0.0.0.0"
-  } >/opt/haraka/config/watch.ini
-  msg_info "Installing Redis (required by watch plugin)"
+    echo "listen=0.0.0.0:8055"
+  } >/opt/haraka/config/http.ini
+  msg_info "Installing Redis and Express (required by watch plugin)"
   $STD apt-get install -y redis-server
   systemctl enable --now redis-server
-  msg_ok "Installed Redis"
+  $STD npm install -g express
+  msg_ok "Installed Redis and Express"
 fi
 
 # Install npm-packaged plugins that were selected
