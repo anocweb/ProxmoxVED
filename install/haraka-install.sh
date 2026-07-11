@@ -209,6 +209,35 @@ if echo "${PLUGIN_LIST}" | grep -q "relay"; then
 fi
 
 # ---------------------------------------------------------------------------
+# SCREEN 3d: TLS setup
+# ---------------------------------------------------------------------------
+if ! TLS_CERT_TYPE=$(whiptail --title "TLS Certificate Setup" \
+  --menu "Select a TLS certificate option:" 12 65 2 \
+  "self-signed" "Generate a self-signed certificate automatically" \
+  "existing"    "Use an existing certificate (Let's Encrypt, etc.)" \
+  3>&1 1>&2 2>&3); then
+  msg_error "Installation cancelled."
+  exit 1
+fi
+
+if [[ "${TLS_CERT_TYPE}" == "existing" ]]; then
+  TLS_CERT_PATH=$(whiptail --title "TLS Certificate" --inputbox \
+    "Path to certificate file (.pem or .crt):" \
+    8 65 "/etc/letsencrypt/live/yourdomain/fullchain.pem" 3>&1 1>&2 2>&3)
+  TLS_KEY_PATH=$(whiptail --title "TLS Certificate" --inputbox \
+    "Path to private key file (.pem or .key):" \
+    8 65 "/etc/letsencrypt/live/yourdomain/privkey.pem" 3>&1 1>&2 2>&3)
+fi
+
+if whiptail --title "TLS — Enforce STARTTLS" --yesno \
+  "Enforce STARTTLS for all inbound connections?\n\nYes: reject clients that do not support STARTTLS (more secure)\nNo:  offer STARTTLS but allow unencrypted connections (more compatible)" \
+  10 70; then
+  TLS_REQUIRE="true"
+else
+  TLS_REQUIRE="false"
+fi
+
+# ---------------------------------------------------------------------------
 # SCREEN 4 (conditional): rspamd install
 # ---------------------------------------------------------------------------
 INSTALL_RSPAMD=false
@@ -238,10 +267,11 @@ if echo "${PLUGIN_LIST}" | grep -q "auth/flat_file"; then
   MANUAL_CONFIG_ITEMS+="  • auth        → /opt/haraka/config/auth_flat_file.ini\n"
 fi
 if echo "${PLUGIN_LIST}" | grep -q "dkim"; then
-  MANUAL_CONFIG_ITEMS+="  • dkim        → run: haraka-dkim-gen (key generation required)\n"
-fi
-if echo "${PLUGIN_LIST}" | grep -q "tls"; then
-  MANUAL_CONFIG_ITEMS+="  • tls         → /opt/haraka/config/tls.ini (cert/key paths)\n"
+  if [[ "${QUEUE}" == "smtp_forward" ]]; then
+    MANUAL_CONFIG_ITEMS+="  • dkim        → Not required: your upstream relay (SES/Mailgun) handles DKIM signing.\n"
+  else
+    MANUAL_CONFIG_ITEMS+="  • dkim        → Key generation required. Run: haraka-dkim-gen\n                   Then add the DNS TXT record to your domain.\n"
+  fi
 fi
 if echo "${PLUGIN_LIST}" | grep -q "greylist"; then
   MANUAL_CONFIG_ITEMS+="  • greylist    → /opt/haraka/config/greylist.ini\n"
@@ -397,17 +427,35 @@ chown -R haraka:haraka /opt/haraka
 msg_ok "Configured Haraka"
 
 # ---------------------------------------------------------------------------
-# Generate self-signed TLS certificate
+# Generate or configure TLS certificate
 # ---------------------------------------------------------------------------
-msg_info "Generating TLS certificate"
-$STD apt-get install -y openssl
-openssl req -new -x509 -days 3650 -nodes \
-  -out /opt/haraka/config/tls_cert.pem \
-  -keyout /opt/haraka/config/tls_key.pem \
-  -subj "/CN=$(hostname)" &>/dev/null
-chown haraka:haraka /opt/haraka/config/tls_cert.pem /opt/haraka/config/tls_key.pem
-chmod 600 /opt/haraka/config/tls_key.pem
-msg_ok "Generated TLS certificate"
+msg_info "Configuring TLS"
+if [[ "${TLS_CERT_TYPE}" == "self-signed" ]]; then
+  $STD apt-get install -y openssl
+  openssl req -new -x509 -days 3650 -nodes \
+    -out /opt/haraka/config/tls_cert.pem \
+    -keyout /opt/haraka/config/tls_key.pem \
+    -subj "/CN=$(hostname)" \
+    -addext "subjectAltName=IP:$(hostname -I | awk '{print $1}')" &>/dev/null
+  TLS_CERT_PATH="/opt/haraka/config/tls_cert.pem"
+  TLS_KEY_PATH="/opt/haraka/config/tls_key.pem"
+  chown haraka:haraka /opt/haraka/config/tls_cert.pem /opt/haraka/config/tls_key.pem
+  chmod 600 /opt/haraka/config/tls_key.pem
+else
+  # Symlink existing certs into Haraka config dir for consistency
+  ln -sf "${TLS_CERT_PATH}" /opt/haraka/config/tls_cert.pem
+  ln -sf "${TLS_KEY_PATH}" /opt/haraka/config/tls_key.pem
+  TLS_CERT_PATH="/opt/haraka/config/tls_cert.pem"
+  TLS_KEY_PATH="/opt/haraka/config/tls_key.pem"
+fi
+
+{
+  echo "[main]"
+  echo "key=/opt/haraka/config/tls_key.pem"
+  echo "cert=/opt/haraka/config/tls_cert.pem"
+  echo "requireTLS=${TLS_REQUIRE}"
+} >/opt/haraka/config/tls.ini
+msg_ok "Configured TLS"
 
 # ---------------------------------------------------------------------------
 # Create systemd service
