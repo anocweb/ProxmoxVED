@@ -86,40 +86,37 @@ export PLUGIN_SELECTED
 # ---------------------------------------------------------------------------
 # SCREEN 2: Plugin fine-tuning
 # ---------------------------------------------------------------------------
-build_item() {
-  local name="$1"
-  local desc="$2"
-  local state="OFF"
-  echo "${PLUGIN_SELECTED}" | grep -qw "${name}" && state="ON"
-  echo "$name" "$desc" "$state"
-}
+is_selected() { echo "${PLUGIN_SELECTED}" | grep -qw "$1" && echo "ON" || echo "OFF"; }
 
-# shellcheck disable=SC2046
+PLUGIN_ARGS=(
+  "tls"                     "TLS/STARTTLS support"                        "$(is_selected tls)"
+  "spf"                     "SPF validation"                               "$(is_selected spf)"
+  "dkim"                    "DKIM sign and verify"                         "$(is_selected dkim)"
+  "fcrdns"                  "Forward-confirmed reverse DNS"                "$(is_selected fcrdns)"
+  "helo.checks"             "HELO/EHLO validity checks"                    "$(is_selected helo.checks)"
+  "mail_from.is_resolvable" "Verify sender domain has MX record"           "$(is_selected mail_from.is_resolvable)"
+  "bounce"                  "Bounce processing"                            "$(is_selected bounce)"
+  "rcpt_to.in_host_list"    "Define local recipient domains"               "$(is_selected rcpt_to.in_host_list)"
+  "relay"                   "Manage relay permissions"                     "$(is_selected relay)"
+  "auth/flat_file"          "SMTP AUTH against a flat file"                "$(is_selected auth/flat_file)"
+  "rspamd"                  "Spam scanning via rspamd"                     "$(is_selected rspamd)"
+  "greylist"                "Greylisting"                                  "$(is_selected greylist)"
+  "karma"                   "Dynamic connection scoring"                   "$(is_selected karma)"
+  "dns-list"                "DNS blacklist and whitelist checks"           "$(is_selected dns-list)"
+  "uribl"                   "URI blacklist checks"                         "$(is_selected uribl)"
+  "delay_deny"              "Delay deny responses"                         "$(is_selected delay_deny)"
+  "tarpit"                  "Slow down suspicious connections"             "$(is_selected tarpit)"
+  "early_talker"            "Reject clients that talk before banner"       "$(is_selected early_talker)"
+  "toobusy"                 "Defer connections when server is under load"  "$(is_selected toobusy)"
+  "clamd"                   "Antivirus scanning via ClamAV"                "$(is_selected clamd)"
+  "watch"                   "Live SMTP traffic web UI - port 8055"         "$(is_selected watch)"
+  "process_title"           "Show activity counters in ps output"          "$(is_selected process_title)"
+  "syslog"                  "Log to syslog"                                "$(is_selected syslog)"
+)
+
 if ! PLUGIN_LIST=$(whiptail --title "Haraka Setup — Step 2 of 4" \
   --checklist "Review and adjust plugins. Pre-checked items come from your selected presets." 30 78 20 \
-  $(build_item "tls"                     "TLS/STARTTLS support") \
-  $(build_item "spf"                     "SPF validation") \
-  $(build_item "dkim"                    "DKIM sign and verify") \
-  $(build_item "fcrdns"                  "Forward-confirmed reverse DNS checks") \
-  $(build_item "helo.checks"             "HELO/EHLO validity checks") \
-  $(build_item "mail_from.is_resolvable" "Verify sender domain has MX record") \
-  $(build_item "bounce"                  "Bounce processing") \
-  $(build_item "rcpt_to.in_host_list"    "Define local recipient domains") \
-  $(build_item "relay"                   "Manage relay permissions") \
-  $(build_item "auth/flat_file"          "SMTP AUTH against a flat file") \
-  $(build_item "rspamd"                  "Spam scanning via rspamd") \
-  $(build_item "greylist"                "Greylisting") \
-  $(build_item "karma"                   "Dynamic connection scoring") \
-  $(build_item "dns-list"                "DNS blacklist/whitelist checks") \
-  $(build_item "uribl"                   "URI blacklist checks") \
-  $(build_item "delay_deny"              "Delay deny responses to waste spammer time") \
-  $(build_item "tarpit"                  "Slow down suspicious connections") \
-  $(build_item "early_talker"            "Reject clients that talk before banner") \
-  $(build_item "toobusy"                 "Defer connections when server is under load") \
-  $(build_item "clamd"                   "Antivirus scanning via ClamAV") \
-  $(build_item "watch"                   "Live SMTP traffic web UI - port 8055") \
-  $(build_item "process_title"           "Show activity counters in ps output") \
-  $(build_item "syslog"                  "Log to syslog") \
+  "${PLUGIN_ARGS[@]}" \
   3>&1 1>&2 2>&3); then
   msg_error "Installation cancelled."
   exit 1
