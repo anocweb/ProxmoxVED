@@ -58,7 +58,7 @@ fi
 
 # Build pre-selected plugin list from chosen purposes
 # Base plugins always enabled regardless of preset
-PLUGIN_SELECTED="tls helo.checks bounce"
+PLUGIN_SELECTED="tls helo.checks bounce spf fcrdns mail_from.is_resolvable early_talker toobusy process_title"
 
 if echo "${PURPOSES}" | grep -q "inbound"; then
   PLUGIN_SELECTED="${PLUGIN_SELECTED} spf dkim fcrdns mail_from.is_resolvable rcpt_to.in_host_list"
@@ -115,6 +115,7 @@ if ! PLUGIN_LIST=$(whiptail --title "Haraka Setup — Step 2 of 4" \
   $(build_item "delay_deny"              "Delay deny responses to waste spammer time") \
   $(build_item "tarpit"                  "Slow down suspicious connections") \
   $(build_item "early_talker"            "Reject clients that talk before banner") \
+  $(build_item "toobusy"                 "Defer connections when server is under load") \
   $(build_item "clamd"                   "Antivirus scanning via ClamAV") \
   $(build_item "watch"                   "Live SMTP traffic web UI (port 8055)") \
   $(build_item "process_title"           "Show activity counters in ps output") \
