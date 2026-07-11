@@ -317,6 +317,10 @@ if echo "${PLUGIN_LIST}" | grep -q "watch"; then
     echo "port=8055"
     echo "bind=0.0.0.0"
   } >/opt/haraka/config/watch.ini
+  msg_info "Installing Redis (required by watch plugin)"
+  $STD apt-get install -y redis-server
+  systemctl enable --now redis-server
+  msg_ok "Installed Redis"
 fi
 
 # Install npm-packaged plugins that were selected
@@ -344,7 +348,9 @@ if echo "${PLUGIN_LIST}" | grep -q "helo.checks";             then NPM_PLUGINS+=
 if echo "${PLUGIN_LIST}" | grep -q "mail_from.is_resolvable"; then NPM_PLUGINS+=("haraka-plugin-mail_from.is_resolvable"); fi
 
 msg_info "Installing npm plugins"
-cd /opt/haraka || exit
+$STD apt-get install -y build-essential
+$STD npm install -g toobusy-js
+cd /usr/lib/node_modules/Haraka || exit
 $STD npm install "${NPM_PLUGINS[@]}"
 msg_ok "Installed npm plugins"
 
