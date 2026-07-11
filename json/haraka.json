@@ -20,9 +20,9 @@
             "script": "ct/haraka.sh",
             "config_path": "/opt/haraka/config",
             "resources": {
-                "cpu": 1,
+                "cpu": 2,
                 "ram": 2048,
-                "hdd": 4,
+                "hdd": 20,
                 "os": "Debian",
                 "version": "13"
             }
